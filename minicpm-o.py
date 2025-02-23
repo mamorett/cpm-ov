@@ -2,7 +2,7 @@ import warnings
 import logging
 import torch
 from PIL import Image
-from transformers import AutoModel, AutoTokenizer
+from transformers import AutoTokenizer
 from auto_gptq import AutoGPTQForCausalLM
 from pathlib import Path
 import os
@@ -10,6 +10,7 @@ from tqdm import tqdm
 import argparse
 from dotenv import load_dotenv
 from contextlib import contextmanager
+import time
 
 # Suppress all warnings
 warnings.filterwarnings('ignore')
@@ -20,25 +21,71 @@ logging.getLogger("transformers").setLevel(logging.ERROR)
 logging.getLogger("auto_gptq").setLevel(logging.ERROR)
 logging.getLogger("safetensors").setLevel(logging.ERROR)
 
+CONFIG = {
+    'model_path': 'openbmb/MiniCPM-o-2_6-int4',
+    'device': 'cuda:0',
+    'supported_formats': ['.jpg', '.jpeg', '.png', '.bmp', '.webp'],
+    'max_retries': 3,
+    'max_image_size': 4096 * 4096,
+    'max_file_size': 10 * 1024 * 1024  # 10MB
+}
+
+@contextmanager
+def manage_model_resources():
+    """Context manager for handling GPU memory resources."""
+    try:
+        torch.cuda.empty_cache()
+        yield
+    finally:
+        torch.cuda.empty_cache()
+
+def load_config():
+    config = {
+        'model_path': 'openbmb/MiniCPM-o-2_6-int4',
+        'device': 'cuda:0',
+        'supported_formats': ['.jpg', '.jpeg', '.png', '.bmp', '.webp'],
+        'batch_size': 1
+    }
+    return config
+
+def validate_image(image_path):
+    try:
+        with Image.open(image_path) as img:
+            if img.size[0] * img.size[1] > 4096 * 4096:
+                raise ValueError("Image dimensions too large")
+            if os.path.getsize(image_path) > 10 * 1024 * 1024:  # 10MB
+                raise ValueError("File size too large")
+    except Exception as e:
+        raise ValueError(f"Invalid image file: {str(e)}")
+
+def process_batch(image_files, **kwargs):
+    total_size = sum(os.path.getsize(f) for f in image_files)
+    processed_size = 0
+    with tqdm(total=total_size, unit='B', unit_scale=True) as pbar:
+        for image in image_files:
+            # Process image
+            processed_size += os.path.getsize(image)
+            pbar.update(os.path.getsize(image))
+
 
 def load_model_and_tokenizer():
-    """Initialize the model and tokenizer."""
-    model = AutoGPTQForCausalLM.from_quantized(
-        'openbmb/MiniCPM-o-2_6-int4',
-        torch_dtype=torch.bfloat16,
-        device="cuda:0",
-        trust_remote_code=True,
-        disable_exllama=True,
-        disable_exllamav2=True,
-        use_safetensors=True
-    )
-    
-    tokenizer = AutoTokenizer.from_pretrained(
-        'openbmb/MiniCPM-o-2_6-int4',
-        trust_remote_code=True
-    )
-    
-    return model, tokenizer
+    with manage_model_resources():
+        model = AutoGPTQForCausalLM.from_quantized(
+            CONFIG['model_path'],
+            torch_dtype=torch.bfloat16,
+            device=CONFIG['device'],
+            trust_remote_code=True,
+            disable_exllama=True,
+            disable_exllamav2=True,
+            use_safetensors=True
+        )
+        
+        tokenizer = AutoTokenizer.from_pretrained(
+            CONFIG['model_path'],
+            trust_remote_code=True
+        )
+        
+        return model, tokenizer
 
 def get_prompts_from_env():
     """Get all prompts from .env file that end with _PROMPT."""
@@ -50,38 +97,48 @@ def get_prompts_from_env():
             prompts[prompt_name] = value
     return prompts
 
-def process_single_image(image_path, prompt, model, tokenizer, force=False, no_save=False):
-    """Process a single image and save the result."""
+def process_single_image(image_path, prompt, model, tokenizer, force=False, no_save=False, quiet=False):
     try:
-        output_path = image_path.with_suffix('.txt')
+        validate_image(image_path)
         
-        # Check if output file exists and skip if not forced
-        if not no_save and output_path.exists() and not force:
-            print(f"\nSkipping {image_path} - output file already exists")
-            return True
-            
-        # Load and convert image
-        image = Image.open(image_path).convert('RGB')
-        
-        # Create chat message
-        msgs = [{'role': 'user', 'content': [image, prompt]}]
-        
-        # Get model response
-        answer = model.chat(msgs=msgs, tokenizer=tokenizer)
-        
-        # Save response to text file if no_save is False
-        if not no_save:
-            with open(output_path, 'w', encoding='utf-8') as f:
-                f.write(answer)
-            print(f"\nCreated output file: {output_path}")
-        
-        print(f"\nResponse for {image_path}:\n{answer}\n")
-            
-        return True
+        for attempt in range(CONFIG['max_retries']):
+            try:
+                with manage_model_resources():
+                    output_path = image_path.with_suffix('.txt')
+                    
+                    if not no_save and output_path.exists() and not force:
+                        if not quiet:
+                            print(f"\nSkipping {image_path} - output file already exists")
+                        return True
+                        
+                    image = Image.open(image_path).convert('RGB')
+                    msgs = [{'role': 'user', 'content': [image, prompt]}]
+                    answer = model.chat(msgs=msgs, tokenizer=tokenizer)
+                    
+                    if not no_save:
+                        with open(output_path, 'w', encoding='utf-8') as f:
+                            f.write(answer)
+                        if not quiet:
+                            print(f"\nCreated output file: {output_path}")
+                    
+                    # Print response only if not in quiet mode or if no_save is True
+                    if not quiet or no_save:
+                        print(f"\nResponse for {image_path}:\n{answer}\n")
+                    return True
+                    
+            except Exception as e:
+                if attempt == CONFIG['max_retries'] - 1:
+                    raise
+                if not quiet:
+                    print(f"\nRetry {attempt + 1}/{CONFIG['max_retries']}: {str(e)}")
+                time.sleep(1)
+                
     except Exception as e:
-        print(f"\nError processing {image_path}: {str(e)}")
+        if not quiet:
+            print(f"\nError processing {image_path}: {str(e)}")
         return False
-    
+
+
 def get_prompts():
     """Get prompts from .env file and command line arguments."""
     # Get prompts from .env
@@ -108,6 +165,9 @@ def main():
                        help='Force processing even if output file exists')
     parser.add_argument('-n', '--no-save', action='store_true',
                        help='Do not save output to text files, print to terminal only')    
+    parser.add_argument('-q', '--quiet', action='store_true',
+                   help='Suppress response output (only valid when saving to files)')
+
     args = parser.parse_args()
 
         # Determine which prompt to use
@@ -127,37 +187,27 @@ def main():
         # Single file processing
         if path.suffix.lower() in ['.jpg', '.jpeg', '.png', '.bmp', '.webp']:
             print(f"Processing single image: {path}")
-            process_single_image(path, selected_prompt, model, tokenizer, args.force, args.no_save)
+            process_single_image(path, selected_prompt, model, tokenizer, args.force, args.no_save, args.quiet)
     elif path.is_dir():
-        # Directory processing
         image_files = []
-        for ext in ['*.jpg', '*.jpeg', '*.png', '*.bmp', '*.webp']:
-            image_files.extend(path.glob(ext))
-            image_files.extend(path.glob(ext.upper()))  # Also match uppercase extensions
-        
+        for ext in CONFIG['supported_formats']:
+            image_files.extend(path.glob(f"*{ext}"))
+            image_files.extend(path.glob(f"*{ext.upper()}"))
+            
         if not image_files:
             print("No image files found in directory")
             return
             
-        # Count files that need processing
-        if not args.force:
-            to_process = [f for f in image_files if not f.with_suffix('.txt').exists()]
-            skipped = len(image_files) - len(to_process)
-            if skipped > 0:
-                print(f"Found {len(image_files)} images, skipping {skipped} with existing output files")
-            image_files = to_process
-            
-        if not image_files:
-            print("No images require processing (all have existing output files)")
-            return
-            
-        print(f"Processing {len(image_files)} images")
+        total_size = sum(os.path.getsize(f) for f in image_files)
+        processed_size = 0
         successful = 0
         
-        # Process all images with progress bar
-        for image_path in tqdm(image_files, desc="Processing images"):
-            if process_single_image(image_path, selected_prompt, model, tokenizer, args.force, args.no_save):
-                successful += 1
+        with tqdm(total=total_size, unit='B', unit_scale=True) as pbar:
+            for image_path in image_files:
+                if process_single_image(image_path, selected_prompt, model, tokenizer, args.force, args.no_save, args.quiet):
+                    successful += 1
+                processed_size += os.path.getsize(image_path)
+                pbar.update(os.path.getsize(image_path))
                 
         print(f"\nProcessing complete. Successfully processed {successful} out of {len(image_files)} images.")
     else:

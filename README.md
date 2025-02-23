@@ -357,6 +357,7 @@ python minicpm-o.py path/to/image.jpg -t describe-image --no-save
 - `-p, --prompt`: Custom prompt to use (mutually exclusive with `-t, --prompt-type`)
 - `-f, --force`: Force processing even if output file exists
 - `-n, --no-save`: Print response to terminal instead of saving to file
+- `-q, --quiet`: Suppress model response output when saving to files.
 
 ## Error Handling
 
