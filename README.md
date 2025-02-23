@@ -24,46 +24,46 @@
 
 ##  Table of Contents
 
-- [ Overview](#-overview)
-- [ Features](#-features)
-- [ Project Structure](#-project-structure)
-  - [ Project Index](#-project-index)
-- [ Getting Started](#-getting-started)
-  - [ Prerequisites](#-prerequisites)
-  - [ Installation](#-installation)
-  - [ Usage](#-usage)
-  - [ Testing](#-testing)
-- [ Project Roadmap](#-project-roadmap)
-- [ Contributing](#-contributing)
-- [ License](#-license)
-- [ Acknowledgments](#-acknowledgments)
+- [Table of Contents](#table-of-contents)
+- [Overview](#overview)
+- [Features](#features)
+- [Project Structure](#project-structure)
+  - [Project Index](#project-index)
+- [Getting Started](#getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+- [Configuration](#configuration)
+- [Usage](#usage)
+  - [Single Image Processing](#single-image-processing)
+  - [Directory Processing](#directory-processing)
+  - [Force Processing](#force-processing)
+- [Output](#output)
+- [Command Line Arguments](#command-line-arguments)
+- [Error Handling](#error-handling)
+- [Notes](#notes)
+- [Example Workflow](#example-workflow)
+- [Project Roadmap](#project-roadmap)
+- [Contributing](#contributing)
+- [License](#license)
+- [Acknowledgments](#acknowledgments)
 
 ---
 
 ##  Overview
 
-The cpm-ov project is an open-source AI-powered image-to-text generation tool that leverages the MiniCPM-o model to generate text based on input images. The core problem it solves is the lack of accessibility for people with visual impairments, as they may not be able to read or understand images. The project's key features include the ability to generate text based on any image, customizable prompts, and a user-friendly interface.
-
-The target audience for this project includes individuals who are visually impaired or have difficulty reading images, as well as those who want to explore the capabilities of AI-powered image generation. The project's benefits include improved accessibility, increased efficiency in information retrieval, and a new way of consuming and interacting with visual content.
-
-Overall, the cpm-ov project is an innovative solution that leverages AI to improve accessibility and provide new ways of interacting with images. Its open-source nature allows for collaboration and customization, making it a valuable tool for a wide range of users.
+The cpm-ov project is an open-source AI-powered image-to-text generation tool that leverages the int4 quantized version of [**MiniCPM-o 2.6**](https://huggingface.co/openbmb/MiniCPM-o-2_6) model to generate text based on input images.   
+Running with int4 version would use lower GPU memory (about 9GB). MiniCPM-o is the latest series of end-side multimodal LLMs (MLLMs) ungraded from MiniCPM-V. The models can now take images, video, text, and audio as inputs and provide high-quality text and speech outputs in an end-to-end fashion. This script processes images using the [ MiniCPM-o-2_6-int4 ](https://huggingface.co/openbmb/MiniCPM-o-2_6-int4) model to generate text descriptions based on customizable prompts. It can handle both single images and directories, supporting various image formats including JPG, JPEG, PNG, BMP, and WebP.
 
 ---
 
 ##  Features
 
-| Feature | Summary |
-| --- | --- |
-| Architecture | The project uses a modular architecture, with each module responsible for a specific task. This allows for easy maintenance and customization of the codebase. |
-| Code Quality | The code is well-structured, with clear and concise variable names, and proper indentation. It also follows best practices for coding in Python, such as using docstrings to document functions and classes. |
-| Documentation | The project includes a detailed README file that provides an overview of the project, its features, and how to use it. It also includes links to relevant documentation and resources. |
-| Integrations | The project integrates with popular open-source libraries such as Pillow, torch, torchaudio, torchvision, transformers, sentencepiece, vector-quantize-pytorch, vocos, accelerate, timm, soundfile, librosa, decord, and moviepy. |
-| Modularity | The project is highly modular, with each module responsible for a specific task. This allows for easy maintenance and customization of the codebase. |
-| Testing | The project includes unit tests to ensure that the code functions properly and meets the desired specifications. It also includes integration tests to ensure that the different modules work together correctly. |
-| Performance | The project is designed to be fast and efficient, with optimized algorithms and data structures. It also uses parallel processing techniques to speed up computationally intensive tasks. |
-| Security | The project includes security features such as input validation and sanitization to prevent common web vulnerabilities. It also uses secure coding practices, such as using secure hash functions and avoiding SQL injection attacks. |
-| Dependencies | The project has a minimal number of dependencies, with most of the codebase being self-contained. This makes it easy to maintain and update the codebase over time. |
-| Scalability | The project is designed to be highly scalable, with support for large datasets and high-performance computing. It also includes features such as distributed computing and parallel processing to maximize performance. |
+- Process single images or entire directories
+- Customizable prompts via environment variables
+- Support for multiple image formats (JPG, JPEG, PNG, BMP, WebP)
+- Skip existing processed files with option to force reprocessing
+- Progress bar for directory processing
+- Detailed output logging
 
 ---
 
@@ -105,9 +105,8 @@ Overall, the cpm-ov project is an innovative solution that leverages AI to impro
 
 Before getting started with cpm-ov, ensure your runtime environment meets the following requirements:
 
-- **Programming Language:** Error detecting primary_language: {'txt': 1, 'py': 1}
+- **Programming Language:** Python version 3.11
 - **Package Manager:** Pip
-
 
 ###  Installation
 
@@ -125,34 +124,108 @@ Install cpm-ov using one of the following methods:
 ❯ cd cpm-ov
 ```
 
-3. Install the project dependencies:
+3. Prepare code and install AutoGPTQ
+   
+```python
+git clone https://github.com/OpenBMB/AutoGPTQ.git && cd AutoGPTQ
+git checkout minicpmo
+
+# install AutoGPTQ
+pip install -vvv --no-build-isolation -e .
+```
+
+4. Install the project dependencies:
 
 
 **Using `pip`** &nbsp; [<img align="center" src="" />]()
 
 ```sh
-❯ echo 'INSERT-INSTALL-COMMAND-HERE'
+❯ echo 'pip install -r requirements.txt'
 ```
 
+## Configuration
 
+1. Create a `.env` file in the script directory
+2. Add your prompts with the `_PROMPT` suffix:
 
-
-###  Usage
-Run cpm-ov using the following command:
-**Using `pip`** &nbsp; [<img align="center" src="" />]()
-
-```sh
-❯ echo 'INSERT-RUN-COMMAND-HERE'
+```env
+DESCRIBE_IMAGE_PROMPT="Describe what you see in this image"
+TECHNICAL_ANALYSIS_PROMPT="Provide a technical analysis of this image"
+ARTISTIC_REVIEW_PROMPT="Review this image from an artistic perspective"
+# Add as many prompts as needed
 ```
 
+The prompt names will be automatically converted to command-line arguments:
+- `DESCRIBE_IMAGE_PROMPT` becomes `--prompt-type describe-image`
+- `TECHNICAL_ANALYSIS_PROMPT` becomes `--prompt-type technical-analysis`
 
-###  Testing
-Run the test suite using the following command:
-**Using `pip`** &nbsp; [<img align="center" src="" />]()
+## Usage
 
-```sh
-❯ echo 'INSERT-TEST-COMMAND-HERE'
+### Single Image Processing
+
+```bash
+python script.py path/to/image.jpg --prompt-type describe-image
 ```
+
+### Directory Processing
+
+```bash
+python script.py path/to/image/directory --prompt-type technical-analysis
+```
+
+### Force Processing
+
+To process files even if output already exists:
+
+```bash
+python script.py path/to/images --prompt-type describe-image -f
+```
+
+## Output
+
+- For each processed image, a corresponding `.txt` file is created in the same directory
+- The script shows progress and results during processing
+- Existing output files are skipped unless force flag (-f) is used
+
+## Command Line Arguments
+
+- `path`: Path to image file or directory (required)
+- `--prompt-type`: Type of prompt to use (required)
+- `-f, --force`: Force processing even if output file exists
+
+## Error Handling
+
+- Invalid paths or unsupported file types are caught and reported
+- Processing errors for individual images are logged without stopping the entire process
+- Detailed error messages are provided for troubleshooting
+
+## Notes
+
+- The script suppresses model loading messages for cleaner output
+- Progress bar shows real-time processing status for directory operations
+- Skipped files (due to existing output) are reported in the summary
+
+## Example Workflow
+
+1. Set up your prompts in `.env`:
+```env
+DESCRIBE_IMAGE_PROMPT="Provide a detailed description of this image"
+```
+
+2. Run the script:
+```bash
+python script.py ~/images/vacation --prompt-type describe-image
+```
+
+3. Check the output:
+```bash
+Found 50 images, skipping 10 with existing output files
+Processing 40 images
+[========================================] 40/40
+Processing complete. Successfully processed 40 out of 40 images.
+```
+
+4. Find the results in `.txt` files next to your images
 
 
 ---
