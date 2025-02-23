@@ -52,7 +52,7 @@
 ##  Overview
 
 The cpm-ov project is an open-source AI-powered image-to-text generation tool that leverages the int4 quantized version of [**MiniCPM-o 2.6**](https://huggingface.co/openbmb/MiniCPM-o-2_6) model to generate text based on input images.   
-Running with int4 version would use lower GPU memory (about 9GB). MiniCPM-o is the latest series of end-side multimodal LLMs (MLLMs) ungraded from MiniCPM-V. The models can now take images, video, text, and audio as inputs and provide high-quality text and speech outputs in an end-to-end fashion. This script processes images using the [ MiniCPM-o-2_6-int4 ](https://huggingface.co/openbmb/MiniCPM-o-2_6-int4) model to generate text descriptions based on customizable prompts. It can handle both single images and directories, supporting various image formats including JPG, JPEG, PNG, BMP, and WebP.
+Running with int4 version would use lower GPU memory (about 9GB). MiniCPM-o is the latest series of end-side multimodal LLMs (MLLMs) ungraded from MiniCPM-V. The models can now take images, video, text, and audio as inputs and provide high-quality text and speech outputs in an end-to-end fashion. This script processes images using the [MiniCPM-o-2_6-int4](https://huggingface.co/openbmb/MiniCPM-o-2_6-int4) model to generate text descriptions based on customizable prompts. It can handle both single images and directories, supporting various image formats including JPG, JPEG, PNG, BMP, and WebP.
 
 ---
 
@@ -164,13 +164,13 @@ The prompt names will be automatically converted to command-line arguments:
 ### Single Image Processing
 
 ```bash
-python script.py path/to/image.jpg --prompt-type describe-image
+python minicpm-o.py path/to/image.jpg --prompt-type describe-image
 ```
 
 ### Directory Processing
 
 ```bash
-python script.py path/to/image/directory --prompt-type technical-analysis
+python minicpm-o.py path/to/image/directory --prompt-type technical-analysis
 ```
 
 ### Force Processing
@@ -178,7 +178,7 @@ python script.py path/to/image/directory --prompt-type technical-analysis
 To process files even if output already exists:
 
 ```bash
-python script.py path/to/images --prompt-type describe-image -f
+python minicpm-o.py path/to/images --prompt-type describe-image -f
 ```
 
 ## Output
@@ -214,7 +214,7 @@ DESCRIBE_IMAGE_PROMPT="Provide a detailed description of this image"
 
 2. Run the script:
 ```bash
-python script.py ~/images/vacation --prompt-type describe-image
+python minicpm-o.py ~/images/vacation --prompt-type describe-image
 ```
 
 3. Check the output:
@@ -231,9 +231,8 @@ Processing complete. Successfully processed 40 out of 40 images.
 ---
 ##  Project Roadmap
 
-- [X] **`Task 1`**: <strike>Implement feature one.</strike>
-- [ ] **`Task 2`**: Implement feature two.
-- [ ] **`Task 3`**: Implement feature three.
+- [X] **`Task 1`**: <strike>Directory process.</strike>
+- [ ] **`Task 2`**: API integration with text2img services.
 
 ---
 
@@ -282,12 +281,12 @@ Processing complete. Successfully processed 40 out of 40 images.
 
 ##  License
 
-This project is protected under the [SELECT-A-LICENSE](https://choosealicense.com/licenses) License. For more details, refer to the [LICENSE](https://choosealicense.com/licenses/) file.
+This project is protected under the [GNU GPLv3](https://choosealicense.com/licenses/gpl-3.0/) License. For more details, refer to the [LICENSE](./LICENSE) file.
 
 ---
 
 ##  Acknowledgments
 
-- List any resources, contributors, inspiration, etc. here.
+- [MiniCPM-o-2_6#usage](https://huggingface.co/openbmb/MiniCPM-o-2_6#usage)
 
 ---
