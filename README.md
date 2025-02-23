@@ -232,7 +232,8 @@ Processing complete. Successfully processed 40 out of 40 images.
 ##  Project Roadmap
 
 - [X] **`Task 1`**: <strike>Directory process.</strike>
-- [ ] **`Task 2`**: API integration with text2img services.
+- [ ] **`Task 2`**: GPTQModel support, once [PR](https://github.com/ModelCloud/GPTQModel/pull/1116) will be approved and merged.
+- [ ] **`Task 3`**: API integration with text2img services.
 
 ---
 
