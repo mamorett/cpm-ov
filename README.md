@@ -49,6 +49,7 @@
   - [Single Image Processing](#single-image-processing-2)
   - [Directory Processing](#directory-processing-2)
   - [Force Processing](#force-processing-2)
+  - [Print Response to Terminal](#print-response-to-terminal)
 - [Output](#output-2)
 - [Command Line Arguments](#command-line-arguments-2)
 - [Error Handling](#error-handling)
@@ -335,18 +336,27 @@ Using a custom prompt directly:
 python minicpm-o.py path/to/images -p "Describe the main features of these images" -f
 ```
 
+### Print Response to Terminal
+
+To print the response directly to the terminal instead of saving to a file:
+
+```bash
+python minicpm-o.py path/to/image.jpg -t describe-image --no-save
+```
+
 ## Output
 
-- For each processed image, a corresponding `.txt` file is created in the same directory.
-- The script shows progress and results during processing.
-- Existing output files are skipped unless the force flag (`-f`) is used.
+- For each processed image, a corresponding `.txt` file is created in the same directory unless `--no-save` is used
+- The script shows progress and results during processing
+- Existing output files are skipped unless force flag (-f) is used
 
 ## Command Line Arguments
 
-- `path`: Path to image file or directory (required).
-- `-t, --prompt-type`: Type of prompt to use, as defined in the `.env` file (mutually exclusive with `-p`).
-- `-p, --prompt`: Custom prompt to use (mutually exclusive with `-t`).
-- `-f, --force`: Force processing even if the output file exists.
+- `path`: Path to image file or directory (required)
+- `-t, --prompt-type`: Type of prompt to use (defined in .env file) (mutually exclusive with `-p, --prompt`)
+- `-p, --prompt`: Custom prompt to use (mutually exclusive with `-t, --prompt-type`)
+- `-f, --force`: Force processing even if output file exists
+- `-n, --no-save`: Print response to terminal instead of saving to file
 
 ## Error Handling
 

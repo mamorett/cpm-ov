@@ -9,9 +9,7 @@ import os
 from tqdm import tqdm
 import argparse
 from dotenv import load_dotenv
-import sys
 from contextlib import contextmanager
-import io
 
 # Suppress all warnings
 warnings.filterwarnings('ignore')
@@ -22,44 +20,23 @@ logging.getLogger("transformers").setLevel(logging.ERROR)
 logging.getLogger("auto_gptq").setLevel(logging.ERROR)
 logging.getLogger("safetensors").setLevel(logging.ERROR)
 
-# Context manager to suppress stdout and stderr
-@contextmanager
-def suppress_output():
-    # Save the original stdout and stderr
-    old_stdout = sys.stdout
-    old_stderr = sys.stderr
-    
-    # Create string buffers to catch output
-    stdout_buffer = io.StringIO()
-    stderr_buffer = io.StringIO()
-    
-    try:
-        # Redirect stdout and stderr
-        sys.stdout = stdout_buffer
-        sys.stderr = stderr_buffer
-        yield
-    finally:
-        # Restore stdout and stderr
-        sys.stdout = old_stdout
-        sys.stderr = old_stderr
 
 def load_model_and_tokenizer():
     """Initialize the model and tokenizer."""
-    with suppress_output():
-        model = AutoGPTQForCausalLM.from_quantized(
-            'openbmb/MiniCPM-o-2_6-int4',
-            torch_dtype=torch.bfloat16,
-            device="cuda:0",
-            trust_remote_code=True,
-            disable_exllama=True,
-            disable_exllamav2=True,
-            use_safetensors=True
-        )
-        
-        tokenizer = AutoTokenizer.from_pretrained(
-            'openbmb/MiniCPM-o-2_6-int4',
-            trust_remote_code=True
-        )
+    model = AutoGPTQForCausalLM.from_quantized(
+        'openbmb/MiniCPM-o-2_6-int4',
+        torch_dtype=torch.bfloat16,
+        device="cuda:0",
+        trust_remote_code=True,
+        disable_exllama=True,
+        disable_exllamav2=True,
+        use_safetensors=True
+    )
+    
+    tokenizer = AutoTokenizer.from_pretrained(
+        'openbmb/MiniCPM-o-2_6-int4',
+        trust_remote_code=True
+    )
     
     return model, tokenizer
 
@@ -73,13 +50,13 @@ def get_prompts_from_env():
             prompts[prompt_name] = value
     return prompts
 
-def process_single_image(image_path, prompt, model, tokenizer, force=False):
+def process_single_image(image_path, prompt, model, tokenizer, force=False, no_save=False):
     """Process a single image and save the result."""
     try:
         output_path = image_path.with_suffix('.txt')
         
         # Check if output file exists and skip if not forced
-        if output_path.exists() and not force:
+        if not no_save and output_path.exists() and not force:
             print(f"\nSkipping {image_path} - output file already exists")
             return True
             
@@ -90,15 +67,15 @@ def process_single_image(image_path, prompt, model, tokenizer, force=False):
         msgs = [{'role': 'user', 'content': [image, prompt]}]
         
         # Get model response
-        with suppress_output():
-            answer = model.chat(msgs=msgs, tokenizer=tokenizer)
+        answer = model.chat(msgs=msgs, tokenizer=tokenizer)
         
-        # Save response to text file
-        with open(output_path, 'w', encoding='utf-8') as f:
-            f.write(answer)
+        # Save response to text file if no_save is False
+        if not no_save:
+            with open(output_path, 'w', encoding='utf-8') as f:
+                f.write(answer)
+            print(f"\nCreated output file: {output_path}")
         
-        print(f"\nCreated output file: {output_path}")
-        print(f"Content written:\n{answer}\n")
+        print(f"\nResponse for {image_path}:\n{answer}\n")
             
         return True
     except Exception as e:
@@ -129,6 +106,8 @@ def main():
     group.add_argument('-p', '--prompt', help='Custom prompt to use')
     parser.add_argument('-f', '--force', action='store_true',
                        help='Force processing even if output file exists')
+    parser.add_argument('-n', '--no-save', action='store_true',
+                       help='Do not save output to text files, print to terminal only')    
     args = parser.parse_args()
 
         # Determine which prompt to use
@@ -148,7 +127,7 @@ def main():
         # Single file processing
         if path.suffix.lower() in ['.jpg', '.jpeg', '.png', '.bmp', '.webp']:
             print(f"Processing single image: {path}")
-            process_single_image(path, selected_prompt, model, tokenizer, args.force)
+            process_single_image(path, selected_prompt, model, tokenizer, args.force, args.no_save)
     elif path.is_dir():
         # Directory processing
         image_files = []
@@ -177,7 +156,7 @@ def main():
         
         # Process all images with progress bar
         for image_path in tqdm(image_files, desc="Processing images"):
-            if process_single_image(image_path, selected_prompt, model, tokenizer, args.force):
+            if process_single_image(image_path, selected_prompt, model, tokenizer, args.force, args.no_save):
                 successful += 1
                 
         print(f"\nProcessing complete. Successfully processed {successful} out of {len(image_files)} images.")
