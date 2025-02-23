@@ -32,13 +32,25 @@
 - [Getting Started](#getting-started)
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
-- [Configuration](#configuration)
+- [Configuration to use prompt Type](#configuration-to-use-prompt-type)
 - [Usage](#usage)
   - [Single Image Processing](#single-image-processing)
   - [Directory Processing](#directory-processing)
   - [Force Processing](#force-processing)
 - [Output](#output)
 - [Command Line Arguments](#command-line-arguments)
+- [Usage](#usage-1)
+  - [Single Image Processing](#single-image-processing-1)
+  - [Directory Processing](#directory-processing-1)
+  - [Force Processing](#force-processing-1)
+- [Output](#output-1)
+- [Command Line Arguments](#command-line-arguments-1)
+- [Usage](#usage-2)
+  - [Single Image Processing](#single-image-processing-2)
+  - [Directory Processing](#directory-processing-2)
+  - [Force Processing](#force-processing-2)
+- [Output](#output-2)
+- [Command Line Arguments](#command-line-arguments-2)
 - [Error Handling](#error-handling)
 - [Notes](#notes)
 - [Example Workflow](#example-workflow)
@@ -143,7 +155,9 @@ pip install -vvv --no-build-isolation -e .
 ❯ echo 'pip install -r requirements.txt'
 ```
 
-## Configuration
+## Configuration to use prompt Type
+
+If you plan to use Prompt Type then:
 
 1. Create a `.env` file in the script directory
 2. Add your prompts with the `_PROMPT` suffix:
@@ -159,18 +173,32 @@ The prompt names will be automatically converted to command-line arguments:
 - `DESCRIBE_IMAGE_PROMPT` becomes `--prompt-type describe-image`
 - `TECHNICAL_ANALYSIS_PROMPT` becomes `--prompt-type technical-analysis`
 
+Here's the updated README section:
+
 ## Usage
 
 ### Single Image Processing
 
 ```bash
-python minicpm-o.py path/to/image.jpg --prompt-type describe-image
+python minicpm-o.py path/to/image.jpg -t describe-image
+```
+
+Alternatively, you can use a custom prompt:
+
+```bash
+python minicpm-o.py path/to/image.jpg -p "Custom prompt to describe the image"
 ```
 
 ### Directory Processing
 
 ```bash
-python minicpm-o.py path/to/image/directory --prompt-type technical-analysis
+python minicpm-o.py path/to/image/directory -t technical-analysis
+```
+
+Alternatively, you can use a custom prompt:
+
+```bash
+python minicpm-o.py path/to/image/directory -p "Custom prompt for technical analysis"
 ```
 
 ### Force Processing
@@ -178,7 +206,13 @@ python minicpm-o.py path/to/image/directory --prompt-type technical-analysis
 To process files even if output already exists:
 
 ```bash
-python minicpm-o.py path/to/images --prompt-type describe-image -f
+python minicpm-o.py path/to/images -t describe-image -f
+```
+
+Or with a custom prompt:
+
+```bash
+python minicpm-o.py path/to/images -p "Custom prompt" -f
 ```
 
 ## Output
@@ -190,8 +224,129 @@ python minicpm-o.py path/to/images --prompt-type describe-image -f
 ## Command Line Arguments
 
 - `path`: Path to image file or directory (required)
-- `--prompt-type`: Type of prompt to use (required)
+- `-t, --prompt-type`: Type of prompt to use (defined in .env file) (mutually exclusive with `-p, --prompt`)
+- `-p, --prompt`: Custom prompt to use (mutually exclusive with `-t, --prompt-type`)
 - `-f, --force`: Force processing even if output file exists
+
+From other sources:
+
+Claude 3.5 Sonnet, GPT-4o
+
+
+
+Here's the updated README section:
+
+## Usage
+
+### Single Image Processing
+
+Using a prompt type from .env file:
+```bash
+python minicpm-o.py path/to/image.jpg -t describe-image
+# or
+python minicpm-o.py path/to/image.jpg --prompt-type describe-image
+```
+
+Using a custom prompt:
+```bash
+python minicpm-o.py path/to/image.jpg -p "Describe this image in detail"
+# or
+python minicpm-o.py path/to/image.jpg --prompt "Describe this image in detail"
+```
+
+### Directory Processing
+
+Using a prompt type from .env file:
+```bash
+python minicpm-o.py path/to/image/directory -t technical-analysis
+```
+
+Using a custom prompt:
+```bash
+python minicpm-o.py path/to/image/directory -p "Analyze the technical aspects of this image"
+```
+
+### Force Processing
+
+To process files even if output already exists:
+
+```bash
+python minicpm-o.py path/to/images -t describe-image -f
+# or
+python minicpm-o.py path/to/images -p "Describe this image" -f
+```
+
+## Output
+
+- For each processed image, a corresponding `.txt` file is created in the same directory
+- The script shows progress and results during processing
+- Existing output files are skipped unless force flag (-f) is used
+
+## Command Line Arguments
+
+- `path`: Path to image file or directory (required)
+- `-t, --prompt-type`: Type of prompt to use from .env file
+- `-p, --prompt`: Custom prompt to use
+- `-f, --force`: Force processing even if output file exists
+
+Note: Either `-t/--prompt-type` or `-p/--prompt` must be specified, but not both simultaneously.
+
+## Usage
+
+### Single Image Processing
+
+You can process a single image by specifying the path to the image and using either a prompt type from the `.env` file or a custom prompt directly.
+
+Using a prompt type from the `.env` file:
+```bash
+python minicpm-o.py path/to/image.jpg -t describe-image
+```
+
+Using a custom prompt directly:
+```bash
+python minicpm-o.py path/to/image.jpg -p "Describe the main features of this image"
+```
+
+### Directory Processing
+
+You can process all images in a directory by specifying the path to the directory and using either a prompt type from the `.env` file or a custom prompt directly.
+
+Using a prompt type from the `.env` file:
+```bash
+python minicpm-o.py path/to/image/directory -t technical-analysis
+```
+
+Using a custom prompt directly:
+```bash
+python minicpm-o.py path/to/image/directory -p "Provide a technical analysis of these images"
+```
+
+### Force Processing
+
+To process files even if the output already exists, use the `-f` or `--force` flag:
+
+Using a prompt type from the `.env` file:
+```bash
+python minicpm-o.py path/to/images -t describe-image -f
+```
+
+Using a custom prompt directly:
+```bash
+python minicpm-o.py path/to/images -p "Describe the main features of these images" -f
+```
+
+## Output
+
+- For each processed image, a corresponding `.txt` file is created in the same directory.
+- The script shows progress and results during processing.
+- Existing output files are skipped unless the force flag (`-f`) is used.
+
+## Command Line Arguments
+
+- `path`: Path to image file or directory (required).
+- `-t, --prompt-type`: Type of prompt to use, as defined in the `.env` file (mutually exclusive with `-p`).
+- `-p, --prompt`: Custom prompt to use (mutually exclusive with `-t`).
+- `-f, --force`: Force processing even if the output file exists.
 
 ## Error Handling
 

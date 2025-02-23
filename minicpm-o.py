@@ -104,25 +104,38 @@ def process_single_image(image_path, prompt, model, tokenizer, force=False):
     except Exception as e:
         print(f"\nError processing {image_path}: {str(e)}")
         return False
+    
+def get_prompts():
+    """Get prompts from .env file and command line arguments."""
+    # Get prompts from .env
+    load_dotenv()
+    prompts = {}
+    for key, value in os.environ.items():
+        if key.endswith('_PROMPT'):
+            prompt_name = key.replace('_PROMPT', '').lower().replace('_', '-')
+            prompts[prompt_name] = value
+    return prompts    
 
 def main():
     # Get prompts from .env
     prompts = get_prompts_from_env()
     
-    if not prompts:
-        print("No prompts found in .env file. Please add prompts with _PROMPT suffix.")
-        return
-    
     # Set up argument parser
     parser = argparse.ArgumentParser(description='Process images with GPT model')
     parser.add_argument('path', help='Path to image file or directory')
-    parser.add_argument('--prompt-type', choices=list(prompts.keys()),
-                       required=True, help='Type of prompt to use')
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('-t', '--prompt-type', choices=list(prompts.keys()),
+                       help='Type of prompt to use (defined in .env file)')
+    group.add_argument('-p', '--prompt', help='Custom prompt to use')
     parser.add_argument('-f', '--force', action='store_true',
                        help='Force processing even if output file exists')
     args = parser.parse_args()
-    
-    selected_prompt = prompts[args.prompt_type]
+
+        # Determine which prompt to use
+    if args.prompt_type:
+        selected_prompt = prompts[args.prompt_type]
+    else:
+        selected_prompt = args.prompt
     
     # Initialize model and tokenizer
     print("Initializing model and tokenizer...")
